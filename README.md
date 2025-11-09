@@ -1,38 +1,62 @@
-# Tugas 7 - Aplikasi Flutter E-Commerce
+<h1 align="center">Football Shop Flutter App</h1>
 
-Aplikasi Flutter sederhana bertema dashboard e-commerce dengan tiga aksi utama: melihat daftar produk, menambah produk, dan keluar dari aplikasi.
+Dashboard Flutter sederhana bertema Football Shop yang digunakan untuk mempraktikkan navigasi, layout, serta form input.
 
-## Jawaban Pertanyaan
+## Cara Menjalankan
 
-1. **Stateless widget vs stateful widget**  
-   Stateless widget adalah widget yang tidak menyimpan perubahan data internal; tampilannya hanya bergantung pada parameter yang diterima saat dibuat dan tidak akan berubah setelah di-render. Stateful widget memiliki objek `State` yang dapat menyimpan data atau kondisi dan bisa diperbarui melalui `setState()`, sehingga tampilan dapat berubah selama siklus hidupnya. Perbedaan utama keduanya terletak pada kemampuan stateful widget untuk merender ulang dirinya ketika terjadi perubahan state internal.
-
-2. **Widget yang digunakan dan fungsinya**  
-   - `MaterialApp`: Menjadi root aplikasi serta menyediakan konfigurasi tema dan navigasi.  
-   - `Scaffold`: Menyediakan struktur dasar layar, termasuk `AppBar` dan area konten.  
-   - `AppBar`: Menampilkan judul dashboard e-commerce.  
-   - `Container` dengan `BoxDecoration`: Membuat latar belakang gradien agar tampilan terasa modern.  
-   - `Column`, `SizedBox`, `Padding`, dan `Center`: Mengatur tata letak konten agar tersusun rapi.  
-   - `Icon` dan `Text`: Menampilkan ikon toko dan berbagai teks penjelas.  
-   - `ElevatedButton.icon`: Menyediakan tiga tombol aksi dengan ikon dan label.  
-   - `SnackBar` & `ScaffoldMessenger`: Menampilkan pesan umpan balik ketika tombol ditekan.
-
-3. **Fungsi `setState()` dan variabel yang terdampak**  
-   `setState()` memberi tahu Flutter bahwa terjadi perubahan pada state sehingga widget perlu dibangun ulang dengan data terbaru. Semua variabel yang dideklarasikan di dalam objek `State` dan dibaca di metode `build()` atau metode lain yang mempengaruhi tampilan akan terdampak oleh pemanggilan `setState()`. (Pada implementasi ini, tidak ada state yang berubah karena seluruh UI bersifat stateless.)
-
-4. **Perbedaan `const` dan `final`**  
-   `const` menandakan nilai konstan yang sudah pasti diketahui saat kompilasi (compile-time constant) dan akan diperlakukan sebagai objek yang tidak berubah sama sekali. `final` menandakan variabel hanya dapat diinisialisasi sekali, tetapi nilainya dapat ditentukan saat runtime. Semua `const` juga secara implisit `final`, namun tidak semua `final` adalah `const`.
-
-5. **Implementasi checklist**  
-   - Membuat tema e-commerce dengan skema warna hijau toska, latar gradien, dan ikon toko di beranda.  
-   - Menambahkan tiga `ElevatedButton.icon` untuk aksi melihat daftar produk, menambah produk, dan logout dengan warna tombol yang berbeda.  
-   - Menggunakan `ScaffoldMessenger` untuk menampilkan `SnackBar` dengan pesan sesuai tombol yang ditekan.  
-   - Mengisi README ini dengan jawaban konsep Flutter sesuai permintaan tugas.
-
-## Menjalankan Aplikasi
-
-Pastikan Flutter SDK pada folder `/flutter` sudah diinisialisasi. Dari direktori proyek, jalankan perintah berikut:
+Pastikan Flutter SDK (folder `flutter`) sudah tersedia di environment lokal. Kemudian jalankan perintah berikut dari direktori proyek.
 
 ```bash
 flutter run
 ```
+
+---
+
+## Tugas 6
+
+### Ringkasan Implementasi
+
+- Mengatur tema aplikasi menggunakan warna hijau Football Shop dan tipografi Poppins dari `google_fonts`.
+- Menyusun halaman utama dengan ikon produk, teks sambutan, serta tiga tombol aksi menggunakan kombinasi `Column`, `SizedBox`, dan `ElevatedButton.icon`.
+- Menampilkan `SnackBar` melalui `ScaffoldMessenger` ketika setiap tombol ditekan.
+
+### Jawaban Pertanyaan
+
+1. **Perbedaan stateless vs stateful widget**  
+   Stateless widget tidak mempunyai state internal dan hanya bergantung pada parameter konstruktor sehingga tampilannya tidak berubah setelah dibuat. Stateful widget memiliki objek `State` yang dapat menyimpan data dan berubah melalui `setState()`, membuat UI dapat diperbarui selama siklus hidup widget.
+
+2. **Widget yang digunakan dan fungsinya**  
+   `MaterialApp` sebagai root aplikasi, `Scaffold` untuk kerangka halaman, `AppBar` sebagai judul, `Container` dan `Padding` untuk tata letak, `Column` dan `SizedBox` untuk komposisi vertikal, `Icon` dan `Text` untuk konten, `ElevatedButton.icon` sebagai tombol aksi, serta `SnackBar` dan `ScaffoldMessenger` untuk umpan balik.
+
+3. **Fungsi `setState()`**  
+   `setState()` memberi tahu Flutter bahwa ada perubahan data pada state sehingga metode `build()` dijalankan ulang dan UI diperbarui. Karena halaman utama bersifat stateless pada tugas ini, tidak ada variabel yang dipengaruhi.
+
+4. **Perbedaan `const` dan `final`**  
+   `const` menghasilkan nilai yang bersifat konstan saat kompilasi (compile-time constant) dan tidak dapat berubah sama sekali. `final` hanya dapat diinisialisasi sekali, namun nilainya boleh ditentukan saat runtime. Semua `const` bersifat `final`, sementara tidak semua `final` adalah `const`.
+
+---
+
+## Tugas 7
+
+### Checklist Implementasi
+
+- [x] Menambahkan halaman form tambah produk (`ProductFormPage`) dengan input nama, harga, deskripsi, kategori, URL thumbnail, dan switch produk unggulan.
+- [x] Validasi setiap input: wajib diisi, panjang minimal, harga positif, serta URL dengan skema `http/https`.
+- [x] Tombol **Save** menampilkan dialog berisi rekap data form.
+- [x] Tombol **Tambah Produk** di halaman utama menavigasi ke halaman form dengan `Navigator.push`.
+- [x] Drawer dengan opsi **Halaman Utama** dan **Tambah Produk** yang menavigasi ke halaman terkait menggunakan `Navigator.pushReplacement`.
+- [x] README diperbarui dengan jawaban pertanyaan baru.
+
+### Jawaban Pertanyaan
+
+1. **Perbedaan `Navigator.push()` dan `Navigator.pushReplacement()`**  
+   `Navigator.push()` menambahkan route baru di atas tumpukan sehingga pengguna dapat kembali ke halaman sebelumnya melalui tombol back. Contohnya, tombol **Tambah Produk** pada beranda memanggil `Navigator.push()` agar pengguna bisa kembali setelah selesai mengisi form. Sebaliknya, `Navigator.pushReplacement()` mengganti route aktif sehingga halaman sebelumnya dihapus dari tumpukan. Drawer menggunakan `Navigator.pushReplacement()` untuk berpindah antar-halaman karena pola drawer biasanya tidak menumpuk riwayat halaman.
+
+2. **Pemanfaatan hierarchy widget (`Scaffold`, `AppBar`, `Drawer`)**  
+   Setiap halaman menggunakan `Scaffold` sebagai kerangka utama sehingga konten, `AppBar`, dan `Drawer` tersusun konsisten. `AppBar` menyediakan judul dan gaya yang sama di beranda maupun halaman form, sedangkan `Drawer` dibagi ke dalam widget terpisah (`AppDrawer`) agar navigasi dan gaya drawer tetap seragam tanpa duplikasi kode.
+
+3. **Kelebihan `Padding`, `SingleChildScrollView`, dan `ListView` untuk elemen form**  
+   `Padding` menjaga jarak antar-field agar mudah dibaca. `SingleChildScrollView` mencegah overflow ketika form dibuka pada layar kecil atau saat keyboard muncul karena seluruh isi form dapat digulir. Untuk menampilkan rekap data form di dialog, `ListView` digunakan sehingga daftar nilai tetap dapat digulir apabila kontennya panjang. Kombinasi ketiganya menjaga form tetap nyaman digunakan di berbagai ukuran layar.
+
+4. **Menyesuaikan warna tema agar konsisten dengan brand**  
+   Tema aplikasi menggunakan `ColorScheme.fromSeed` dengan warna hijau Football Shop (`0xFF1B5E20`) dan dipadukan dengan teks Poppins. Warna yang sama diterapkan pada `AppBar`, drawer header, serta aksi utama sehingga identitas visual toko terasa konsisten di seluruh halaman.
