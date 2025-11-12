@@ -11,6 +11,8 @@
 .svn/
 .swiftpm/
 migrate_working_dir/
+backend/db.sqlite3
+backend/*.sqlite3
 
 # IntelliJ related
 *.iml
