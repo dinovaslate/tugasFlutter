@@ -7,6 +7,7 @@ import 'package:pbp_django_auth/pbp_django_auth.dart';
 import 'package:provider/provider.dart';
 
 import 'models/product.dart';
+import 'footer_info.dart';
 
 const String baseUrl = 'http://10.0.2.2:8000';
 
@@ -423,6 +424,8 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 }
 
+enum OwnerFilterMode { all, mine, custom }
+
 class HomePage extends StatefulWidget {
   const HomePage({super.key, required this.username});
 
@@ -434,6 +437,9 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   late Future<List<Product>> _productsFuture;
+  OwnerFilterMode _ownerFilter = OwnerFilterMode.all;
+  String? _customOwnerFilter;
+  final GlobalKey _filterAnchorKey = GlobalKey();
 
   @override
   void initState() {
@@ -443,12 +449,11 @@ class _HomePageState extends State<HomePage> {
 
   Future<List<Product>> _fetchProducts() async {
     final request = context.read<CookieRequest>();
-    final response = await request.get('$baseUrl/products/json/');
+    final response = await request.get(_buildProductsEndpoint());
     final rawList = response as List<dynamic>;
     final products =
         rawList
             .map((item) => Product.fromJson(item as Map<String, dynamic>))
-            .where((product) => product.ownerUsername == widget.username)
             .toList()
           ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return products;
@@ -460,6 +465,115 @@ class _HomePageState extends State<HomePage> {
       _productsFuture = refreshed;
     });
     await refreshed;
+  }
+
+  String _buildProductsEndpoint() {
+    String base = '$baseUrl/products/json/';
+    if (_ownerFilter == OwnerFilterMode.mine) {
+      return '$base?owner=me';
+    }
+    if (_ownerFilter == OwnerFilterMode.custom &&
+        (_customOwnerFilter?.isNotEmpty ?? false)) {
+      final owner = Uri.encodeComponent(_customOwnerFilter!.trim());
+      return '$base?owner=$owner';
+    }
+    return base;
+  }
+
+  String _filterDescription() {
+    switch (_ownerFilter) {
+      case OwnerFilterMode.all:
+        return 'Semua produk';
+      case OwnerFilterMode.mine:
+        return 'Produk milik ${widget.username}';
+      case OwnerFilterMode.custom:
+        return _customOwnerFilter == null
+            ? 'Semua produk'
+            : 'Produk milik $_customOwnerFilter';
+    }
+  }
+
+  Future<void> _changeFilter(OwnerFilterMode mode) async {
+    if (mode == OwnerFilterMode.custom) {
+      final username = await _promptUsernameFilter();
+      if (username == null) return;
+      setState(() {
+        _ownerFilter = OwnerFilterMode.custom;
+        _customOwnerFilter = username;
+      });
+    } else {
+      setState(() {
+        _ownerFilter = mode;
+        _customOwnerFilter = null;
+      });
+    }
+    await _refreshProducts();
+  }
+
+  Future<void> _showFilterMenu() async {
+    final overlay = Overlay.of(context);
+    final RenderBox? overlayBox =
+        overlay.context.findRenderObject() as RenderBox?;
+    final RenderBox? box =
+        _filterAnchorKey.currentContext?.findRenderObject() as RenderBox?;
+    if (overlayBox == null || box == null) return;
+    final Offset position = box.localToGlobal(
+      Offset.zero,
+      ancestor: overlayBox,
+    );
+
+    final OwnerFilterMode? selected = await showMenu<OwnerFilterMode>(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        position.dx,
+        position.dy + box.size.height,
+        position.dx + box.size.width,
+        position.dy,
+      ),
+      items: const [
+        PopupMenuItem(value: OwnerFilterMode.all, child: Text('Semua produk')),
+        PopupMenuItem(value: OwnerFilterMode.mine, child: Text('Produk saya')),
+        PopupMenuItem(
+          value: OwnerFilterMode.custom,
+          child: Text('Filter berdasarkan username...'),
+        ),
+      ],
+    );
+
+    if (selected != null) {
+      _changeFilter(selected);
+    }
+  }
+
+  Future<String?> _promptUsernameFilter() async {
+    final controller = TextEditingController(text: _customOwnerFilter ?? '');
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Filter berdasarkan username'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            labelText: 'Username',
+            border: OutlineInputBorder(),
+          ),
+          textInputAction: TextInputAction.done,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, controller.text.trim()),
+            child: const Text('Terapkan'),
+          ),
+        ],
+      ),
+    );
+    if (result == null) return null;
+    final trimmed = result.trim();
+    return trimmed.isEmpty ? null : trimmed;
   }
 
   Future<void> _handleLogout() async {
@@ -482,11 +596,17 @@ class _HomePageState extends State<HomePage> {
     ).then((_) => _refreshProducts());
   }
 
-  void _openDetail(Product product) {
-    Navigator.push(
+  Future<void> _openDetail(Product product) async {
+    final changed = await Navigator.push<bool>(
       context,
-      MaterialPageRoute(builder: (context) => ItemDetailPage(product: product)),
+      MaterialPageRoute(
+        builder: (context) =>
+            ItemDetailPage(product: product, username: widget.username),
+      ),
     );
+    if (changed == true && mounted) {
+      _refreshProducts();
+    }
   }
 
   @override
@@ -499,6 +619,24 @@ class _HomePageState extends State<HomePage> {
             icon: const Icon(Icons.refresh),
             onPressed: _refreshProducts,
             tooltip: 'Muat ulang',
+          ),
+          PopupMenuButton<OwnerFilterMode>(
+            icon: const Icon(Icons.filter_list),
+            onSelected: (mode) => _changeFilter(mode),
+            itemBuilder: (context) => const [
+              PopupMenuItem(
+                value: OwnerFilterMode.all,
+                child: Text('Semua produk'),
+              ),
+              PopupMenuItem(
+                value: OwnerFilterMode.mine,
+                child: Text('Produk saya'),
+              ),
+              PopupMenuItem(
+                value: OwnerFilterMode.custom,
+                child: Text('Filter berdasarkan username...'),
+              ),
+            ],
           ),
         ],
       ),
@@ -552,6 +690,20 @@ class _HomePageState extends State<HomePage> {
             final products = snapshot.data ?? [];
 
             if (products.isEmpty) {
+              String emptyMessage;
+              switch (_ownerFilter) {
+                case OwnerFilterMode.mine:
+                  emptyMessage = 'Belum ada produk milik ${widget.username}.';
+                  break;
+                case OwnerFilterMode.custom:
+                  emptyMessage = _customOwnerFilter == null
+                      ? 'Tidak ada produk yang cocok.'
+                      : 'Tidak ada produk milik $_customOwnerFilter.';
+                  break;
+                case OwnerFilterMode.all:
+                  emptyMessage = 'Belum ada produk yang dapat ditampilkan.';
+                  break;
+              }
               return ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 children: [
@@ -566,16 +718,25 @@ class _HomePageState extends State<HomePage> {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'Belum ada produk milik ${widget.username}.',
+                          emptyMessage,
                           textAlign: TextAlign.center,
                           style: Theme.of(context).textTheme.titleMedium,
                         ),
+                        if (_ownerFilter != OwnerFilterMode.all) ...[
+                          const SizedBox(height: 8),
+                          TextButton(
+                            onPressed: () => _changeFilter(OwnerFilterMode.all),
+                            child: const Text('Tampilkan semua produk'),
+                          ),
+                        ],
                         const SizedBox(height: 16),
                         ElevatedButton.icon(
                           onPressed: _openProductForm,
                           icon: const Icon(Icons.add_circle_outline),
                           label: const Text('Tambah Produk'),
                         ),
+                        const SizedBox(height: 32),
+                        const FooterInfo(),
                       ],
                     ),
                   ),
@@ -586,7 +747,7 @@ class _HomePageState extends State<HomePage> {
             return ListView.builder(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(24, 24, 24, 96),
-              itemCount: products.length + 1,
+              itemCount: products.length + 2,
               itemBuilder: (context, index) {
                 if (index == 0) {
                   return Column(
@@ -608,8 +769,46 @@ class _HomePageState extends State<HomePage> {
                         'Kelola produk unggulanmu dan lihat detailnya secara langsung.',
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
+                      const SizedBox(height: 16),
+                      InkWell(
+                        key: _filterAnchorKey,
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: _showFilterMenu,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.filter_alt_outlined, size: 18),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  _filterDescription(),
+                                  style: Theme.of(context).textTheme.bodyMedium,
+                                ),
+                              ),
+                              const Icon(Icons.arrow_drop_down),
+                              if (_ownerFilter == OwnerFilterMode.custom &&
+                                  (_customOwnerFilter?.isNotEmpty ?? false))
+                                TextButton(
+                                  onPressed: () =>
+                                      _changeFilter(OwnerFilterMode.all),
+                                  child: const Text('Hapus filter'),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
                       const SizedBox(height: 24),
                     ],
+                  );
+                }
+                if (index == products.length + 1) {
+                  return const Padding(
+                    padding: EdgeInsets.only(top: 32, bottom: 48),
+                    child: FooterInfo(),
                   );
                 }
                 final product = products[index - 1];
@@ -658,16 +857,21 @@ class ItemCard extends StatelessWidget {
               ClipRRect(
                 borderRadius: BorderRadius.circular(16),
                 child: Image.network(
-                  product.thumbnail,
+                  _proxiedThumbnail(product.thumbnail),
                   width: 84,
                   height: 84,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
-                    width: 84,
-                    height: 84,
-                    color: Colors.grey.shade200,
-                    child: const Icon(Icons.image_not_supported),
-                  ),
+                  errorBuilder: (_, error, __) {
+                    debugPrint(
+                      'Failed to load image ${product.thumbnail}: $error',
+                    );
+                    return Container(
+                      width: 84,
+                      height: 84,
+                      color: Colors.grey.shade200,
+                      child: const Icon(Icons.image_not_supported),
+                    );
+                  },
                 ),
               ),
               const SizedBox(width: 16),
@@ -747,12 +951,81 @@ class ItemCard extends StatelessWidget {
 }
 
 class ItemDetailPage extends StatelessWidget {
-  const ItemDetailPage({super.key, required this.product});
+  const ItemDetailPage({
+    super.key,
+    required this.product,
+    required this.username,
+  });
 
   final Product product;
+  final String username;
+
+  Future<void> _handleEdit(BuildContext context) async {
+    final updated = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            ProductFormPage(username: username, product: product),
+      ),
+    );
+    if (updated == true && context.mounted) {
+      Navigator.pop(context, true);
+    }
+  }
+
+  Future<void> _handleDelete(BuildContext context) async {
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Hapus produk?'),
+        content: const Text(
+          'Tindakan ini tidak dapat dibatalkan. Apakah kamu yakin?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDelete != true) return;
+
+    if (!context.mounted) return;
+    final request = context.read<CookieRequest>();
+    try {
+      final response = await request.postJson(
+        '$baseUrl/products/${product.id}/delete/',
+        jsonEncode({}),
+      );
+      if (!context.mounted) return;
+      if (response['status'] == 'success') {
+        Navigator.pop(context, true);
+      } else {
+        final message =
+            response['message'] ?? 'Gagal menghapus produk dari server.';
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(content: Text(message.toString())));
+      }
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(content: Text('Terjadi kesalahan saat menghapus: $error')),
+        );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final bool isOwner = product.ownerUsername == username;
     return Scaffold(
       appBar: AppBar(title: Text(product.name)),
       body: SingleChildScrollView(
@@ -763,15 +1036,20 @@ class ItemDetailPage extends StatelessWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(24),
               child: Image.network(
-                product.thumbnail,
+                _proxiedThumbnail(product.thumbnail),
                 width: double.infinity,
                 height: 220,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
-                  height: 220,
-                  color: Colors.grey.shade200,
-                  child: const Icon(Icons.image_not_supported, size: 48),
-                ),
+                errorBuilder: (_, error, __) {
+                  debugPrint(
+                    'Failed to load image ${product.thumbnail}: $error',
+                  );
+                  return Container(
+                    height: 220,
+                    color: Colors.grey.shade200,
+                    child: const Icon(Icons.image_not_supported, size: 48),
+                  );
+                },
               ),
             ),
             const SizedBox(height: 16),
@@ -832,6 +1110,28 @@ class ItemDetailPage extends StatelessWidget {
               style: TextStyle(color: Colors.grey.shade600),
             ),
             const SizedBox(height: 32),
+            if (isOwner) ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () => _handleEdit(context),
+                      icon: const Icon(Icons.edit_outlined),
+                      label: const Text('Edit'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _handleDelete(context),
+                      icon: const Icon(Icons.delete_outline),
+                      label: const Text('Delete'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+            ],
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
@@ -859,10 +1159,16 @@ class _DetailChip extends StatelessWidget {
   }
 }
 
+String _proxiedThumbnail(String originalUrl) {
+  final encoded = Uri.encodeComponent(originalUrl);
+  return '$baseUrl/utils/image-proxy/?url=$encoded';
+}
+
 class ProductFormPage extends StatefulWidget {
-  const ProductFormPage({super.key, required this.username});
+  const ProductFormPage({super.key, required this.username, this.product});
 
   final String username;
+  final Product? product;
 
   @override
   State<ProductFormPage> createState() => _ProductFormPageState();
@@ -877,9 +1183,10 @@ class _ProductFormPageState extends State<ProductFormPage> {
 
   final List<String> _categories = [
     'Jersey',
-    'Shoes',
+    'Boots',
+    'Ball',
     'Accessories',
-    'Training Gear',
+    'Other',
   ];
 
   String _selectedCategory = 'Jersey';
@@ -888,6 +1195,28 @@ class _ProductFormPageState extends State<ProductFormPage> {
   String _name = '';
   String _description = '';
   String _thumbnail = '';
+  bool _isSubmitting = false;
+
+  late final bool _isEditing;
+
+  @override
+  void initState() {
+    super.initState();
+    _isEditing = widget.product != null;
+    if (_isEditing) {
+      final product = widget.product!;
+      _nameController.text = product.name;
+      _priceController.text = product.price.toString();
+      _descriptionController.text = product.description;
+      _thumbnailController.text = product.thumbnail;
+      _selectedCategory = _slugToCategoryLabel(product.category);
+      _isFeatured = product.isFeatured;
+      _name = product.name;
+      _price = product.price;
+      _description = product.description;
+      _thumbnail = product.thumbnail;
+    }
+  }
 
   @override
   void dispose() {
@@ -910,37 +1239,92 @@ class _ProductFormPageState extends State<ProductFormPage> {
     });
   }
 
-  void _handleSubmit() {
-    if (_formKey.currentState?.validate() ?? false) {
-      _formKey.currentState!.save();
-      showDialog<void>(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: const Text('Produk berhasil disimpan!'),
-            content: SizedBox(
-              width: double.maxFinite,
-              child: ListView(
-                shrinkWrap: true,
-                children: [
-                  Text('Nama: $_name'),
-                  Text('Harga: Rp${_price.toStringAsFixed(2)}'),
-                  Text('Deskripsi: $_description'),
-                  Text('Kategori: $_selectedCategory'),
-                  Text('Thumbnail: $_thumbnail'),
-                  Text('Produk unggulan: ${_isFeatured ? "Ya" : "Tidak"}'),
+  Future<void> _handleSubmit() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+
+    _formKey.currentState!.save();
+    FocusScope.of(context).unfocus();
+
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    final request = context.read<CookieRequest>();
+    final payload = {
+      'name': _name,
+      'price': _price,
+      'description': _description,
+      'category': _categoryToSlug(_selectedCategory),
+      'thumbnail': _thumbnail,
+      'is_featured': _isFeatured,
+    };
+
+    final endpoint = _isEditing
+        ? '$baseUrl/products/${widget.product!.id}/update/'
+        : '$baseUrl/products/create/';
+
+    try {
+      final response = await request.postJson(endpoint, jsonEncode(payload));
+
+      if (!mounted) return;
+
+      if (response['status'] == 'success') {
+        if (_isEditing) {
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(
+              const SnackBar(content: Text('Produk berhasil diperbarui.')),
+            );
+          Navigator.pop(context, true);
+        } else {
+          await showDialog<void>(
+            context: context,
+            builder: (context) {
+              return AlertDialog(
+                title: const Text('Produk tersimpan ke server!'),
+                content: SizedBox(
+                  width: double.maxFinite,
+                  child: ListView(
+                    shrinkWrap: true,
+                    children: [
+                      Text('Nama: $_name'),
+                      Text('Harga: Rp${_price.toStringAsFixed(2)}'),
+                      Text('Deskripsi: $_description'),
+                      Text('Kategori: $_selectedCategory'),
+                      Text('Thumbnail: $_thumbnail'),
+                      Text('Produk unggulan: ${_isFeatured ? "Ya" : "Tidak"}'),
+                    ],
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Tambah Lagi'),
+                  ),
                 ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('OK'),
-              ),
-            ],
+              );
+            },
           );
-        },
-      ).then((_) => _resetForm());
+          _resetForm();
+        }
+      } else {
+        final message =
+            response['message'] ?? 'Gagal menyimpan produk ke server.';
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(content: Text(message.toString())));
+      }
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text('Terjadi kesalahan: $error')));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
     }
   }
 
@@ -968,7 +1352,7 @@ class _ProductFormPageState extends State<ProductFormPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Tambah Produk Baru'),
+        title: Text(_isEditing ? 'Edit Produk' : 'Tambah Produk Baru'),
         centerTitle: true,
       ),
       drawer: AppDrawer(
@@ -1111,8 +1495,14 @@ class _ProductFormPageState extends State<ProductFormPage> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _handleSubmit,
-                  child: const Text('Save'),
+                  onPressed: _isSubmitting ? null : _handleSubmit,
+                  child: _isSubmitting
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text(_isEditing ? 'Update' : 'Save'),
                 ),
               ),
             ],
@@ -1120,6 +1510,36 @@ class _ProductFormPageState extends State<ProductFormPage> {
         ),
       ),
     );
+  }
+
+  String _slugToCategoryLabel(String slug) {
+    switch (slug) {
+      case 'jersey':
+        return 'Jersey';
+      case 'boots':
+        return 'Boots';
+      case 'ball':
+        return 'Ball';
+      case 'accessory':
+        return 'Accessories';
+      default:
+        return 'Other';
+    }
+  }
+
+  String _categoryToSlug(String label) {
+    switch (label) {
+      case 'Jersey':
+        return 'jersey';
+      case 'Boots':
+        return 'boots';
+      case 'Ball':
+        return 'ball';
+      case 'Accessories':
+        return 'accessory';
+      default:
+        return 'other';
+    }
   }
 }
 
