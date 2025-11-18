@@ -122,34 +122,62 @@
 
         .products-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 1rem;
+            grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+            gap: 1.25rem;
         }
 
         .product-card {
-            border-radius: 0.5rem;
+            border-radius: 0.75rem;
             border: 1px solid #e5e7eb;
-            padding: 0.75rem 0.85rem;
+            padding: 0.75rem;
             background: #ffffff;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            min-height: 210px;
-            transition: box-shadow 0.15s ease, transform 0.15s ease;
+            min-height: 240px;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+            transition: box-shadow 0.16s ease, transform 0.16s ease;
         }
 
         .product-card:hover {
-            box-shadow: 0 16px 40px rgba(15, 23, 42, 0.14);
-            transform: translateY(-2px);
+            box-shadow: 0 18px 45px rgba(15, 23, 42, 0.18);
+            transform: translateY(-3px);
+        }
+
+        .product-media {
+            position: relative;
+            margin-bottom: 0.6rem;
         }
 
         .product-card img {
             width: 100%;
             height: 160px;
             object-fit: cover;
-            border-radius: 0.4rem;
-            margin-bottom: 0.5rem;
+            border-radius: 0.6rem;
             background: #e5e7eb;
+            display: block;
+        }
+
+        .featured-pill {
+            position: absolute;
+            right: 0.5rem;
+            top: 0.5rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.2rem;
+            padding: 0.15rem 0.45rem;
+            border-radius: 999px;
+            background: rgba(249, 115, 22, 0.95);
+            color: #fff;
+            font-size: 0.7rem;
+            font-weight: 500;
+            box-shadow: 0 4px 10px rgba(15, 23, 42, 0.18);
+        }
+
+        .product-main {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
         }
 
         .product-card-header {
@@ -157,53 +185,52 @@
             justify-content: space-between;
             gap: 0.5rem;
             align-items: center;
-            margin-bottom: 0.25rem;
         }
 
         .product-card-title {
-            font-size: 0.92rem;
+            font-size: 0.95rem;
             font-weight: 600;
             margin: 0;
             color: #111827;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
-        .product-card-body {
-            font-size: 0.8rem;
-            margin-bottom: 0.5rem;
+        .product-meta-row {
             display: flex;
             justify-content: space-between;
-            gap: 0.5rem;
-            align-items: baseline;
-        }
-
-        .product-price {
-            font-weight: 600;
-            color: #111827;
+            align-items: center;
+            font-size: 0.78rem;
+            color: #6b7280;
         }
 
         .product-owner {
             text-align: right;
-            color: #6b7280;
-            font-size: 0.78rem;
+            max-width: 120px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .product-price-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-top: 0.15rem;
+        }
+
+        .product-price {
+            font-weight: 700;
+            color: #111827;
+            font-size: 0.95rem;
         }
 
         .product-card-footer {
             display: flex;
             gap: 0.4rem;
             flex-wrap: wrap;
-            margin-top: 0.35rem;
-        }
-
-        .featured-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.2rem;
-            padding: 0.15rem 0.45rem;
-            border-radius: 999px;
-            background: #f97316;
-            color: #fff;
-            font-size: 0.7rem;
-            font-weight: 500;
+            margin-top: 0.55rem;
         }
 
         /* Modal */
@@ -486,18 +513,29 @@
                     ? `<button class="btn-secondary btn-small" data-action="edit" data-id="${product.id}">Edit</button>
                        <button class="btn-danger btn-small" data-action="delete" data-id="${product.id}">Delete</button>`
                     : '';
+                const priceValue = Number(product.price || 0);
+                const priceDisplay = priceValue.toLocaleString('en-US', {
+                    style: 'currency',
+                    currency: 'USD',
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
                 card.innerHTML = `
-                    <div>
-                        <img src="${proxied}" alt="Thumbnail for ${product.name}">
+                    <div class="product-main">
+                        <div class="product-media">
+                            <img src="${proxied}" alt="Thumbnail for ${product.name}">
+                            ${featured}
+                        </div>
                         <div class="product-card-header">
                             <h3 class="product-card-title">${product.name}</h3>
-                            <span class="tag">${product.category_label}</span>
                         </div>
-                        <div class="product-card-body">
-                            <span class="product-price">$${product.price}</span>
+                        <div class="product-meta-row">
+                            <span class="tag">${product.category_label}</span>
                             <span class="product-owner">by ${product.owner_username}</span>
                         </div>
-                        ${featured}
+                        <div class="product-price-row">
+                            <span class="product-price">${priceDisplay}</span>
+                        </div>
                     </div>
                     <div class="product-card-footer">
                         <a href="/products/${product.id}/" class="btn-secondary btn-small">View</a>
