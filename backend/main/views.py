@@ -8,11 +8,24 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
 from django.http import HttpResponse, JsonResponse
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, render
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_http_methods
 
 from .models import Product, ProductCategory
+
+
+def login_page(request):
+    return render(request, 'main/auth.html')
+
+
+def register_page(request):
+    return render(request, 'main/register.html')
+
+
+@login_required
+def dashboard(request):
+    return render(request, 'main/dashboard.html')
 
 
 def _get_payload(request):
@@ -225,3 +238,9 @@ def proxy_image(request):
 
     content_type = response.headers.get('Content-Type', 'application/octet-stream')
     return HttpResponse(response.content, content_type=content_type)
+
+
+@login_required
+def product_page(request, pk: int):
+    product = get_object_or_404(Product.objects.select_related('owner'), pk=pk)
+    return render(request, 'main/product_detail.html', {'product': product})

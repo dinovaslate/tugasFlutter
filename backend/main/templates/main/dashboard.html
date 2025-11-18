@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Product Dashboard</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f3f4f6;
+            color: #111827;
+        }
+
+        header {
+            background: #ffffff;
+            color: #111827;
+            padding: 0.85rem 1.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 1.1rem;
+            letter-spacing: 0.02em;
+        }
+
+        main {
+            padding: 1.5rem;
+            max-width: 960px;
+            margin: 0 auto;
+        }
+
+        h2 {
+            margin-top: 0;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 0.5rem;
+            padding: 1rem 1.25rem;
+            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+            margin-bottom: 1.25rem;
+        }
+
+        label {
+            display: flex;
+            flex-direction: column;
+            font-size: 0.85rem;
+        }
+
+        input, select, textarea {
+            margin-top: 0.25rem;
+            padding: 0.4rem 0.5rem;
+            border-radius: 0.35rem;
+            border: 1px solid #cbd5e1;
+            font-size: 0.9rem;
+        }
+
+        button {
+            padding: 0.45rem 0.8rem;
+            border-radius: 0.35rem;
+            border: none;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: #0d6efd;
+            color: #fff;
+        }
+
+        .btn-secondary {
+            background: #e5e7eb;
+            color: #111827;
+        }
+
+        .btn-danger {
+            background: #dc2626;
+            color: #fff;
+        }
+
+        .btn-small {
+            padding: 0.25rem 0.6rem;
+            font-size: 0.8rem;
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 0.15rem 0.4rem;
+            border-radius: 999px;
+            background: #e0f2fe;
+            color: #0369a1;
+            font-size: 0.7rem;
+        }
+
+        .text-muted {
+            color: #6b7280;
+            font-size: 0.8rem;
+        }
+
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 1.25rem;
+            flex-wrap: wrap;
+        }
+
+        .toolbar-group {
+            display: flex;
+            gap: 0.75rem;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1rem;
+        }
+
+        .product-card {
+            border-radius: 0.5rem;
+            border: 1px solid #e5e7eb;
+            padding: 0.75rem 0.85rem;
+            background: #ffffff;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 210px;
+            transition: box-shadow 0.15s ease, transform 0.15s ease;
+        }
+
+        .product-card:hover {
+            box-shadow: 0 16px 40px rgba(15, 23, 42, 0.14);
+            transform: translateY(-2px);
+        }
+
+        .product-card img {
+            width: 100%;
+            height: 160px;
+            object-fit: cover;
+            border-radius: 0.4rem;
+            margin-bottom: 0.5rem;
+            background: #e5e7eb;
+        }
+
+        .product-card-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 0.5rem;
+            align-items: center;
+            margin-bottom: 0.25rem;
+        }
+
+        .product-card-title {
+            font-size: 0.92rem;
+            font-weight: 600;
+            margin: 0;
+            color: #111827;
+        }
+
+        .product-card-body {
+            font-size: 0.8rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            gap: 0.5rem;
+            align-items: baseline;
+        }
+
+        .product-price {
+            font-weight: 600;
+            color: #111827;
+        }
+
+        .product-owner {
+            text-align: right;
+            color: #6b7280;
+            font-size: 0.78rem;
+        }
+
+        .product-card-footer {
+            display: flex;
+            gap: 0.4rem;
+            flex-wrap: wrap;
+            margin-top: 0.35rem;
+        }
+
+        .featured-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.2rem;
+            padding: 0.15rem 0.45rem;
+            border-radius: 999px;
+            background: #f97316;
+            color: #fff;
+            font-size: 0.7rem;
+            font-weight: 500;
+        }
+
+        /* Modal */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.4);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+        }
+
+        .modal {
+            background: #fff;
+            border-radius: 0.5rem;
+            padding: 1rem 1.25rem 1.25rem;
+            max-width: 520px;
+            width: 100%;
+            box-shadow: 0 10px 25px rgba(15, 23, 42, 0.25);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+        }
+
+        .modal-close {
+            background: transparent;
+            color: #6b7280;
+            font-size: 1.1rem;
+        }
+
+        .modal form {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem 1.25rem;
+            align-items: flex-end;
+        }
+
+        textarea {
+            min-height: 60px;
+            resize: vertical;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <h1>Product Dashboard</h1>
+    <div>
+        <span class="text-muted">Logged in as {{ request.user.username }}</span>
+        <button id="logout-btn" class="btn-secondary btn-small">Logout</button>
+    </div>
+</header>
+<main>
+    <div class="card">
+        <div class="toolbar">
+            <div class="toolbar-group">
+                <label>
+                    Owner username
+                    <input id="owner-filter" placeholder="blank = all, 'me' = yours">
+                </label>
+                <button id="apply-filter" class="btn-secondary btn-small">Apply</button>
+            </div>
+            <div class="toolbar-group">
+                <button id="my-products" class="btn-secondary btn-small">My products</button>
+                <button id="all-products" class="btn-secondary btn-small">All products</button>
+                <button id="add-product" class="btn-primary btn-small">Add product</button>
+            </div>
+        </div>
+        <div id="status" style="margin-top:0.5rem;font-size:0.85rem;"></div>
+    </div>
+
+    <div class="card">
+        <h2>Products</h2>
+        <div id="products-grid" class="products-grid">
+            <div class="text-muted">No products loaded.</div>
+        </div>
+    </div>
+</main>
+
+<div id="product-modal-backdrop" class="modal-backdrop">
+    <div class="modal">
+        <div class="modal-header">
+            <h2 id="modal-title">Create Product</h2>
+            <button type="button" class="modal-close" id="close-modal-btn">&times;</button>
+        </div>
+        <form id="product-form">
+            <input type="hidden" id="product-id">
+            <label>
+                Name
+                <input id="product-name" required>
+            </label>
+            <label>
+                Price
+                <input id="product-price" type="number" step="0.01" required>
+            </label>
+            <label>
+                Category
+                <select id="product-category">
+                    <option value="jersey">Jersey</option>
+                    <option value="boots">Boots</option>
+                    <option value="ball">Ball</option>
+                    <option value="accessory">Accessory</option>
+                    <option value="other" selected>Other</option>
+                </select>
+            </label>
+            <label style="flex: 1 1 100%;">
+                Description
+                <textarea id="product-description" required></textarea>
+            </label>
+            <label style="flex: 1 1 100%;">
+                Thumbnail URL
+                <input id="product-thumbnail" type="url" required>
+            </label>
+            <label>
+                <input id="product-featured" type="checkbox">
+                Featured
+            </label>
+            <div style="margin-top:0.75rem;">
+                <button type="submit" class="btn-primary">Save</button>
+                <button type="button" id="cancel-modal" class="btn-secondary">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    const CURRENT_USERNAME = "{{ request.user.username|escapejs }}";
+    const statusEl = document.getElementById('status');
+    const logoutBtn = document.getElementById('logout-btn');
+    const productsGrid = document.getElementById('products-grid');
+    const ownerFilterInput = document.getElementById('owner-filter');
+
+    const modalBackdrop = document.getElementById('product-modal-backdrop');
+    const modalTitle = document.getElementById('modal-title');
+    const productForm = document.getElementById('product-form');
+
+    function setStatus(message, type = '') {
+        statusEl.textContent = message;
+        statusEl.className = type ? type : '';
+    }
+
+    async function api(path, options = {}) {
+        const settings = {
+            method: options.method || 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                ...(options.headers || {})
+            },
+            credentials: 'include'
+        };
+        if (options.body !== undefined) {
+            settings.body = JSON.stringify(options.body);
+        }
+        const response = await fetch(path, settings);
+        let data = null;
+        const ct = response.headers.get('Content-Type') || '';
+        if (ct.includes('application/json')) {
+            data = await response.json();
+        } else {
+            data = await response.text();
+        }
+        if (!response.ok) {
+            throw {response, data};
+        }
+        return data;
+    }
+
+    logoutBtn.addEventListener('click', async () => {
+        setStatus('Logging out...', '');
+        try {
+            const data = await api('/auth/logout/', {method: 'POST'});
+            setStatus(data.message || 'Logged out.', 'success');
+            window.location.href = '/';
+        } catch (err) {
+            setStatus('Logout failed.', 'error');
+        }
+    });
+
+    function openModal(isEdit, product) {
+        modalTitle.textContent = isEdit ? 'Edit Product' : 'Create Product';
+        if (isEdit && product) {
+            document.getElementById('product-id').value = product.id;
+            document.getElementById('product-name').value = product.name;
+            document.getElementById('product-price').value = product.price;
+            document.getElementById('product-category').value = product.category;
+            document.getElementById('product-description').value = product.description;
+            document.getElementById('product-thumbnail').value = product.thumbnail;
+            document.getElementById('product-featured').checked = !!product.is_featured;
+        } else {
+            resetProductForm();
+        }
+        modalBackdrop.style.display = 'flex';
+    }
+
+    function closeModal() {
+        modalBackdrop.style.display = 'none';
+    }
+
+    function resetProductForm() {
+        document.getElementById('product-id').value = '';
+        document.getElementById('product-name').value = '';
+        document.getElementById('product-price').value = '';
+        document.getElementById('product-category').value = 'other';
+        document.getElementById('product-description').value = '';
+        document.getElementById('product-thumbnail').value = '';
+        document.getElementById('product-featured').checked = false;
+    }
+
+    document.getElementById('add-product').addEventListener('click', () => openModal(false));
+    document.getElementById('close-modal-btn').addEventListener('click', closeModal);
+    document.getElementById('cancel-modal').addEventListener('click', closeModal);
+    modalBackdrop.addEventListener('click', (e) => {
+        if (e.target === modalBackdrop) {
+            closeModal();
+        }
+    });
+
+    productForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('product-id').value;
+        const payload = {
+            name: document.getElementById('product-name').value,
+            price: document.getElementById('product-price').value,
+            description: document.getElementById('product-description').value,
+            category: document.getElementById('product-category').value,
+            thumbnail: document.getElementById('product-thumbnail').value,
+            is_featured: document.getElementById('product-featured').checked
+        };
+        const creating = !id;
+        setStatus(creating ? 'Creating product...' : 'Updating product...', '');
+        try {
+            const path = creating
+                ? '/products/create/'
+                : `/products/${id}/update/`;
+            const data = await api(path, {method: 'POST', body: payload});
+            setStatus(data.message || (creating ? 'Product created.' : 'Product updated.'), 'success');
+            closeModal();
+            await loadProducts(currentOwnerFilter);
+        } catch (err) {
+            const message = err.data && (err.data.message || JSON.stringify(err.data));
+            setStatus(message || 'Saving product failed.', 'error');
+        }
+    });
+
+    let currentOwnerFilter = '';
+
+    async function loadProducts(owner) {
+        currentOwnerFilter = owner;
+        let url = '/products/json/';
+        if (owner) {
+            const encoded = encodeURIComponent(owner);
+            url += `?owner=${encoded}`;
+        }
+        setStatus('Loading products...', '');
+        try {
+            const data = await api(url);
+            if (!Array.isArray(data) || data.length === 0) {
+                productsGrid.innerHTML = '<div class="text-muted">No products found.</div>';
+                setStatus('No products found.', 'success');
+                return;
+            }
+            productsGrid.innerHTML = '';
+            for (const product of data) {
+                const card = document.createElement('div');
+                card.className = 'product-card';
+                const proxied = `/utils/image-proxy/?url=${encodeURIComponent(product.thumbnail)}`;
+                const featured = product.is_featured
+                    ? '<span class="featured-pill">★ Featured</span>'
+                    : '';
+                const isOwner = product.owner_username === CURRENT_USERNAME;
+                const ownerButtons = isOwner
+                    ? `<button class="btn-secondary btn-small" data-action="edit" data-id="${product.id}">Edit</button>
+                       <button class="btn-danger btn-small" data-action="delete" data-id="${product.id}">Delete</button>`
+                    : '';
+                card.innerHTML = `
+                    <div>
+                        <img src="${proxied}" alt="Thumbnail for ${product.name}">
+                        <div class="product-card-header">
+                            <h3 class="product-card-title">${product.name}</h3>
+                            <span class="tag">${product.category_label}</span>
+                        </div>
+                        <div class="product-card-body">
+                            <span class="product-price">$${product.price}</span>
+                            <span class="product-owner">by ${product.owner_username}</span>
+                        </div>
+                        ${featured}
+                    </div>
+                    <div class="product-card-footer">
+                        <a href="/products/${product.id}/" class="btn-secondary btn-small">View</a>
+                        ${ownerButtons}
+                    </div>
+                `;
+                productsGrid.appendChild(card);
+            }
+            setStatus('Products loaded.', 'success');
+        } catch (err) {
+            productsGrid.innerHTML = '<div class="text-muted">Error loading products (are you logged in?).</div>';
+            setStatus('Error loading products.', 'error');
+        }
+    }
+
+    productsGrid.addEventListener('click', async (e) => {
+        const btn = e.target.closest('button[data-action]');
+        if (!btn) return;
+        const id = btn.getAttribute('data-id');
+        const action = btn.getAttribute('data-action');
+        if (action === 'edit') {
+            try {
+                setStatus('Loading product...', '');
+                const product = await api(`/products/${id}/json/`);
+                openModal(true, product);
+                setStatus('Product loaded into form.', 'success');
+            } catch (err) {
+                setStatus('Failed to load product (you can only edit your own products).', 'error');
+            }
+        } else if (action === 'delete') {
+            if (!confirm(`Delete product #${id}?`)) {
+                return;
+            }
+            try {
+                setStatus('Deleting product...', '');
+                const data = await api(`/products/${id}/delete/`, {method: 'POST'});
+                setStatus(data.message || 'Product deleted.', 'success');
+                await loadProducts(currentOwnerFilter);
+            } catch (err) {
+                setStatus('Failed to delete product (you can only delete your own products).', 'error');
+            }
+        }
+    });
+
+    document.getElementById('apply-filter').addEventListener('click', () => {
+        const owner = ownerFilterInput.value.trim();
+        loadProducts(owner || '');
+    });
+
+    document.getElementById('my-products').addEventListener('click', () => {
+        ownerFilterInput.value = 'me';
+        loadProducts('me');
+    });
+
+    document.getElementById('all-products').addEventListener('click', () => {
+        ownerFilterInput.value = '';
+        loadProducts('');
+    });
+
+    // Initial load: show all products after login
+    loadProducts('');
+</script>
+</body>
+</html>

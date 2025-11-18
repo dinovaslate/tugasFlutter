@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f5f5f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background: #fff;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 35px rgba(15, 23, 42, 0.1);
+            padding: 1.5rem 2rem 2rem;
+            max-width: 780px;
+            width: 100%;
+        }
+
+        h1 {
+            margin-top: 0;
+            margin-bottom: 1rem;
+            font-size: 1.4rem;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        label {
+            display: flex;
+            flex-direction: column;
+            font-size: 0.85rem;
+        }
+
+        input {
+            margin-top: 0.25rem;
+            padding: 0.45rem 0.55rem;
+            border-radius: 0.35rem;
+            border: 1px solid #cbd5e1;
+            font-size: 0.9rem;
+        }
+
+        button {
+            padding: 0.45rem 0.8rem;
+            border-radius: 0.35rem;
+            border: none;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: #0d6efd;
+            color: #fff;
+        }
+
+        .text-muted {
+            color: #6b7280;
+            font-size: 0.8rem;
+        }
+
+        #status {
+            margin-top: 0.75rem;
+            font-size: 0.85rem;
+        }
+
+        #status.success {
+            color: #16a34a;
+        }
+
+        #status.error {
+            color: #dc2626;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Login</h1>
+    <p class="text-muted">Enter your credentials to access the dashboard. If you do not have an account, you can register on the registration page.</p>
+
+    <form id="login-form">
+        <label>
+            Username
+            <input name="username" required>
+        </label>
+        <label>
+            Password
+            <input type="password" name="password" required>
+        </label>
+        <button type="submit" class="btn-primary">Login</button>
+    </form>
+
+    <p class="text-muted" style="margin-top: 1rem;">
+        Don't have an account?
+        <a href="/register/">Register here</a>.
+    </p>
+    <div id="status"></div>
+</div>
+
+<script>
+    const statusEl = document.getElementById('status');
+
+    function setStatus(message, type = '') {
+        statusEl.textContent = message;
+        statusEl.className = type ? type : '';
+    }
+
+    async function api(path, options = {}) {
+        const settings = {
+            method: options.method || 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                ...(options.headers || {})
+            },
+            credentials: 'include'
+        };
+        if (options.body !== undefined) {
+            settings.body = JSON.stringify(options.body);
+        }
+        const response = await fetch(path, settings);
+        let data = null;
+        const ct = response.headers.get('Content-Type') || '';
+        if (ct.includes('application/json')) {
+            data = await response.json();
+        } else {
+            data = await response.text();
+        }
+        if (!response.ok) {
+            throw {response, data};
+        }
+        return data;
+    }
+
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        setStatus('Logging in...', '');
+        const form = e.target;
+        const payload = {
+            username: form.username.value,
+            password: form.password.value
+        };
+        try {
+            const data = await api('/auth/login/', {method: 'POST', body: payload});
+            setStatus(data.message || 'Login successful. Redirecting...', 'success');
+            window.location.href = '/dashboard/';
+        } catch (err) {
+            const message = err.data && (err.data.message || JSON.stringify(err.data));
+            setStatus(message || 'Login failed.', 'error');
+        }
+    });
+</script>
+</body>
+</html>

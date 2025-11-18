@@ -5,6 +5,9 @@ from . import views
 app_name = 'main'
 
 urlpatterns = [
+    path('', views.login_page, name='login_page'),
+    path('register/', views.register_page, name='register_page'),
+    path('dashboard/', views.dashboard, name='dashboard'),
     path('auth/login/', views.login_user, name='login'),
     path('auth/logout/', views.logout_user, name='logout'),
     path('auth/register/', views.register_user, name='register'),
@@ -13,5 +16,6 @@ urlpatterns = [
     path('products/<int:pk>/update/', views.update_product, name='update_product'),
     path('products/<int:pk>/delete/', views.delete_product, name='delete_product'),
     path('products/<int:pk>/json/', views.product_detail_json, name='product_detail_json'),
+    path('products/<int:pk>/', views.product_page, name='product_page'),
     path('utils/image-proxy/', views.proxy_image, name='proxy_image'),
 ]
